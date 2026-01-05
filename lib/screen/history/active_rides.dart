@@ -16,6 +16,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../route/app_routes.dart';
+
 class ActiveRides extends StatefulWidget {
   List<RideData>? rideList;
   ActiveRides({super.key,this.rideList});
@@ -276,6 +278,11 @@ class _ActiveRidesState extends State<ActiveRides> {
                             rideProvider.changeStatus(
                                 context, AppConstant.status_end_ride,
                                 widget.rideList![0]);
+                            Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.ride_complete,
+                              arguments: {  'rideData':widget.rideList![0]},
+                            );
                           }, enbale: true),
                     ),
               ),

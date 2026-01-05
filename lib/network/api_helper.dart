@@ -78,6 +78,9 @@ class ApiHelper{
 
   Future<ApiResponse> putDataArgument(String url,Map<String,dynamic>data) async{
     var body = json.encode(data);
+    print(url);
+    print(body);
+    print(data);
     final request = await http.put(Uri.parse(url),headers: {"Content-Type": "application/json"}, body: body);
     ApiResponse apiResponseHelper = returnResponse(request);
     return apiResponseHelper;

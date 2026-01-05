@@ -3,6 +3,8 @@ import 'package:biddy_customer/model/ride_booked_response.dart';
 import 'package:biddy_customer/model/userdata.dart';
 import 'package:biddy_customer/screen/bids/bids_cab_find.dart';
 import 'package:biddy_customer/screen/history/history_screen.dart';
+import 'package:biddy_customer/screen/home/ride_complete_screen.dart';
+import 'package:biddy_customer/screen/payment/paypal_payment_screen.dart';
 import 'package:biddy_customer/screen/wallet/wallet_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +43,31 @@ class RouteGenerator {
 
       case AppRoutes.history:
         return buildRoute(HistoryScreen(), settings: settings)  ;
+
+      case AppRoutes.ride_complete:
+        final args = settings.arguments as Map<String, dynamic>;
+
+        final RideData rideData = args['rideData'] as RideData;
+
+        return buildRoute(
+          RideCompletedPaymentScreen(
+            rideData: rideData,
+          ),
+          settings: settings,
+        );
+
+
+      case AppRoutes.paypalPayment:
+        final args = settings.arguments as Map<String, dynamic>;
+
+        final RideData rideData = args['rideData'] as RideData;
+
+        return buildRoute(
+          PaypalPaymentScreen(
+            rideData: rideData,
+          ),
+          settings: settings,
+        );
 
       case AppRoutes.register:
         final arguments = settings.arguments as String;
@@ -83,12 +110,10 @@ class RouteGenerator {
         final args = settings.arguments as Map<String, dynamic>;
 
         final RideData booking = args['booking'] as RideData;
-        final int finalBidAmount = args['finalBidAmount'] as int;
 
         return buildRoute(
           BookedRideScreen(
             booking: booking,
-            finalBidAmount: finalBidAmount,
           ),
           settings: settings,
         );

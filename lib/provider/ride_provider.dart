@@ -26,6 +26,77 @@ class RideProvider extends BaseProvider {
 
   }
 
+  Future<ApiResponse?> getRideListByCustomerId(BuildContext context) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      UserData userData = await LocalSharePreferences().getLoginData();
+      int? uId = userData.data?.id;
+
+      if (uId == null) {
+        isLoading = false;
+        notifyListeners();
+        return null;
+      }
+
+      String myUrl = "${APIConstants.GET_RIDE_BY_USER_ID}$uId";
+      debugPrint("Get ride API: $myUrl");
+
+      ApiResponse apiResponse =
+      await AppConstant.apiHelper.ApiGetData(myUrl);
+
+      if (apiResponse.status == 200) {
+        GetAllCustomerRides rideBooking =
+        GetAllCustomerRides.fromJson(apiResponse.response);
+
+        /// Clear old data (IMPORTANT)
+        rideList.clear();
+        activeRideList.clear();
+        completedRideList.clear();
+        cancelledRideList.clear();
+
+        final List<RideData> rides = rideBooking.data ?? [];
+
+        if (rides.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You don't have any ride history"),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          rideList.addAll(rides);
+
+          for (var element in rides) {
+            if (element.status == AppConstant.status_ride_ongoing) {
+              activeRideList.add(element);
+            } else if (element.status == AppConstant.status_end_ride) {
+              completedRideList.add(element);
+            } else {
+              cancelledRideList.add(element);
+            }
+          }
+        }
+
+        appState = "Idle";
+        isLoading = false;
+        notifyListeners();
+        return apiResponse;
+      } else {
+        debugPrint("API Failed: ${apiResponse.response}");
+      }
+    } catch (e) {
+      debugPrint("Error fetching rides: $e");
+    }
+
+    appState = "Idle";
+    isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
+
   List<DriverBids> driverBidList = [];
   List<RideData> rideList = [];
   List<RideData> activeRideList = [];
@@ -33,47 +104,6 @@ class RideProvider extends BaseProvider {
   List<RideData> completedRideList = [];
   bool isLoading = false;
 
-  getRideListByCustomerId(BuildContext context) async {
-    isLoading = true;
-    notifyListeners();
-    UserData  userData= await LocalSharePreferences().getLoginData();
-    int? uId= userData.data!.id;
-    String myUrl = APIConstants.GET_RIDE_BY_USER_ID+uId.toString();
-    print("get ride:"+myUrl);
-    ApiResponse apiResponse = await AppConstant.apiHelper.ApiGetData(myUrl);
-    if(apiResponse.status==200){
-      print('the sccussess:${apiResponse.response}');
-      GetAllCustomerRides rideBooking=GetAllCustomerRides.fromJson(apiResponse.response);
-      rideList.addAll(rideBooking.data!);
-      if(rideBooking.data!.isEmpty){
-        SnackBar snackBar = SnackBar(
-          content: Text("Your don't have any ride history"),
-          duration: Duration(seconds: 2),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }else{
-        rideList.forEach((element) {
-          if(element.status==AppConstant.status_ride_ongoing){
-            activeRideList.add(element);
-          }else if(element.status == AppConstant.status_end_ride){
-            completedRideList.add(element);
-          }else{
-            cancelledRideList.add(element);
-          }
-        });
-      }
-      appState="Ideal";
-      notifyListeners();
-      return apiResponse;
-    }else{
-      appState="Ideal";
-      notifyListeners();
-      print('the Failed:${apiResponse.response}');
-      appState="Ideal";
-      notifyListeners();
-      return apiResponse;
-    }
-  }
 
   Future<ApiResponse> getBidListByRideId(
       BuildContext context,
@@ -210,7 +240,6 @@ class RideProvider extends BaseProvider {
       Navigator.pushReplacementNamed(context, AppRoutes.bookedride,
           arguments: {
             'booking': rideBooking.data,
-            'finalBidAmount': bid.bidAmount,
           },);
     } else {
       ToastMessage.show(context, rideBooking.message.toString());

@@ -100,7 +100,7 @@ class FindCabState extends State<FindCabScreen>{
     ApiResponse apiResponse =await AppConstant.apiHelper.ApiGetData(APIConstants.GET_RIDE_BY_ID+"${widget.rideId}");
     if(apiResponse.status==200){
       RideBooking rideBooking=RideBooking.fromJson(apiResponse.response);
-       if(rideBooking.data!.status!.toLowerCase().compareTo(AppConstant.status_pending)==0){
+       if(rideBooking.data!.status!.compareTo(AppConstant.status_pending)==0){
        count= count+1;
        if(count==10){
          mytimer.cancel();
@@ -108,7 +108,7 @@ class FindCabState extends State<FindCabScreen>{
          Navigator.pushNamed(context, AppRoutes.drivernotfound);
 
        }
-      }else if(rideBooking.data!.status!.toLowerCase().compareTo(AppConstant.status_accepted.toLowerCase())==0){
+      }else if(rideBooking.data!.status!.compareTo(AppConstant.status_accepted.toLowerCase())==0){
         mytimer.cancel();
         Navigator.pushReplacementNamed(context, AppRoutes.bookedride, arguments: {
           'booking': rideBooking.data!,

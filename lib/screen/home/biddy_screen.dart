@@ -279,7 +279,7 @@ int count=0;
     acceptRequest.driverIdTemp=data.driver!.id;
     acceptRequest.paymentMode="Cash";
 
-    ApiResponse apiResponse= await AppConstant.apiHelper.putDataArgument(APIConstants.ACCEPT_RIDE_DRIVER,acceptRequest.toJson());
+    ApiResponse apiResponse= await AppConstant.apiHelper.putDataArgument(APIConstants. ACCEPT_RIDE_DRIVER,acceptRequest.toJson());
     RideBooking rideBooking=RideBooking.fromJson(apiResponse.response);
     if(rideBooking.data!=null){
       Navigator.pushReplacementNamed(context, AppRoutes.bookedride, arguments: {

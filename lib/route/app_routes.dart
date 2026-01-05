@@ -18,6 +18,8 @@ class AppRoutes{
   static const bidCabFind="/bidCabFind";
   static const history="/history";
   static const available_rides="/availablerides";
+  static const ride_complete ="/rideComplete";
+  static const paypalPayment="/PaypalPaymentScreen";
 
 
 

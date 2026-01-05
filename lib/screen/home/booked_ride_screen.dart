@@ -1,16 +1,22 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:biddy_customer/constant/imageconstant.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
+
+import '../../constant/api_constant.dart';
+import '../../constant/app_constant.dart';
 import '../../model/base_model/ride_model.dart';
+import '../../route/app_routes.dart';
 
 class BookedRideScreen extends StatefulWidget {
   final RideData booking;
-  final int finalBidAmount;
 
   const BookedRideScreen({
     super.key,
     required this.booking,
-    required this.finalBidAmount,
   });
 
   @override
@@ -18,7 +24,69 @@ class BookedRideScreen extends StatefulWidget {
 }
 
 class _BookedRideState extends State<BookedRideScreen> {
-  RideData get booking => widget.booking;
+  RideData booking = RideData();
+  Timer? _statusTimer;
+  bool _navigatedToPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    booking = widget.booking;
+
+    /// 🔹 Start checking ride status every 5 seconds
+    _startRideStatusPolling();
+  }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    super.dispose();
+  }
+
+  /// ================= STATUS POLLING =================
+  void _startRideStatusPolling() {
+    _statusTimer = Timer.periodic(
+      const Duration(seconds: 5),
+          (_) => _checkRideStatus(),
+    );
+  }
+
+  Future<void> _checkRideStatus() async {
+    if (_navigatedToPayment) return;
+
+    try {
+      final uri = Uri.parse(
+        "${APIConstants.GET_RIDE_BY_ID}${booking.id}",
+      ).replace(scheme: 'https');
+
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final res = jsonDecode(response.body);
+        final updatedRide = RideData.fromJson(res['data']);
+
+        if (!mounted) return;
+
+        setState(() {
+          booking = updatedRide;
+        });
+
+        /// ✅ Ride completed → Go to PayPal
+        if (updatedRide.status == AppConstant.status_end_ride) {
+          _navigatedToPayment = true;
+          _statusTimer?.cancel();
+
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.ride_complete,
+            arguments: {  'rideData':updatedRide},
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Ride status check failed: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,8 +235,6 @@ class _BookedRideState extends State<BookedRideScreen> {
           backgroundImage: AssetImage(ImageConstant.PROFILE_IMAGE),
         ),
         const SizedBox(width: 12),
-
-        // DRIVER DETAILS
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,50 +248,20 @@ class _BookedRideState extends State<BookedRideScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                driver.socialSecurityNumber ?? "",
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  debugPrint("Call Driver: ${driver.phoneNumber}");
-                },
-                child: Row(
-                  children: [
-                    const Icon(Icons.call, size: 16, color: Colors.indigo),
-                    const SizedBox(width: 6),
-                    Text(
-                      driver.phoneNumber ?? "",
-                      style: const TextStyle(
-                        color: Colors.indigo,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
+                driver.phoneNumber ?? "",
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ],
           ),
         ),
-
-        // OTP & AMOUNT
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              "OTP",
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-            Text(
-              "1234",
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+            Text("OTP", style: TextStyle(color: Colors.grey.shade600)),
+            const Text("1234"),
             const SizedBox(height: 8),
             Text(
-              "₹ ${widget.finalBidAmount}",
+              "₹ ${booking.bidAmount}",
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,

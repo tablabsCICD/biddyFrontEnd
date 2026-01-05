@@ -135,7 +135,6 @@ class EntryState extends State<EntryScreen> {
             AppRoutes.bookedride,
             arguments: {
               'booking': getActiveRide.data![0],
-              'finalBidAmount': getActiveRide.data![0].bidAmount,
             },
           );
         }
