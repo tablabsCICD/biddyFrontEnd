@@ -5,11 +5,14 @@ import 'package:biddy_customer/constant/imageconstant.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 import '../../constant/api_constant.dart';
 import '../../constant/app_constant.dart';
 import '../../model/base_model/ride_model.dart';
+import '../../provider/ride_provider.dart';
 import '../../route/app_routes.dart';
+import '../../util/colors.dart';
 
 class BookedRideScreen extends StatefulWidget {
   final RideData booking;
@@ -71,7 +74,7 @@ class _BookedRideState extends State<BookedRideScreen> {
           booking = updatedRide;
         });
 
-        /// ✅ Ride completed → Go to PayPal
+        /// ✅ Ride completed → Go to complete screen
         if (updatedRide.status == AppConstant.status_end_ride) {
           _navigatedToPayment = true;
           _statusTimer?.cancel();
@@ -79,7 +82,7 @@ class _BookedRideState extends State<BookedRideScreen> {
           Navigator.pushReplacementNamed(
             context,
             AppRoutes.ride_complete,
-            arguments: {  'rideData':updatedRide},
+            arguments: {'rideData': updatedRide},
           );
         }
       }
@@ -88,18 +91,95 @@ class _BookedRideState extends State<BookedRideScreen> {
     }
   }
 
+  /// ================= BACK PRESS =================
+  Future<bool> _onBackPressed(RideProvider rideProvider) async {
+    final bool? shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: const Text(
+            "Exit current ride?",
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          content: const Text(
+            "Are you sure you want to go back? Your current ride request will be cancelled.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("No"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeColor.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                "Yes, Exit",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldExit == true) {
+      /// 1️⃣ Cancel the ride
+      rideProvider.changeStatus(
+        context,
+        AppConstant.status_ride_cancel_by_customer,
+        booking, // use current updated booking
+      );
+
+      /// 2️⃣ Navigate to Home screen
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.home,
+            (route) => false,
+      );
+
+      /// 3️⃣ Prevent app exit
+      return false;
+    }
+
+    /// Stay on current screen
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Current Ride")),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _buildGoogleMap(),
-            _buildBottomSection(),
-          ],
-        ),
-      ),
+    return ChangeNotifierProvider(
+      create: (BuildContext context) => RideProvider(context),
+      child: _buildPage(),
+    );
+  }
+
+  Widget _buildPage() {
+    return Consumer<RideProvider>(
+      builder: (context, rideProvider, child) {
+        return WillPopScope(
+          onWillPop: () => _onBackPressed(rideProvider),
+          child: Scaffold(
+            appBar: AppBar(title: const Text("Current Ride")),
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  _buildGoogleMap(),
+                  _buildBottomSection(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -10,7 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../constant/app_constant.dart';
 import '../../model/base_model/ride_model.dart';
+import '../../route/app_routes.dart';
 import 'driver_bids.dart';
 
 class BidsFindScreen extends StatefulWidget {
@@ -57,6 +59,65 @@ class _BidsFindScreenState extends State<BidsFindScreen> {
     super.dispose();
   }
 
+  Future<bool> _onBackPressed() async {
+    final bool? shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        title: const Text(
+          "Exit current ride?",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: const Text(
+          "Are you sure you want to go back? Your current ride request will be cancelled.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("No"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeColor.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              "Yes, Exit",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit == true) {
+      /// 1️⃣ Cancel the ride
+      context.read<RideProvider>().changeStatus(
+        context,
+        AppConstant.status_ride_cancel_by_customer,
+        widget.booking, // 🔴 pass your current RideData here
+      );
+
+      /// 2️⃣ Navigate to Home screen
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.home,
+            (route) => false,
+      );
+
+      /// 3️⃣ Prevent app exit
+      return false;
+    }
+
+    /// Stay on current screen
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,44 +224,8 @@ class _BidsFindScreenState extends State<BidsFindScreen> {
     );
   }
 
-  Future<bool> _onBackPressed() async {
-    return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        title: const Text(
-          "Exit current ride?",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        content: const Text(
-          "Are you sure you want to go back? Your current ride request will be cancelled.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text("No"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ThemeColor.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              "Yes, Exit",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    ) ??
-        false;
-  }
+
+
 
   Widget _buildDriverBids(RideProvider rideProvider) {
     if (rideProvider.isLoading) {
